@@ -1,71 +1,74 @@
-# File Manager - Python/Flask Version for Vercel
+# File Manager - Vercel Blob Edition
 
-This is a Python Flask conversion of the PHP file manager, designed to run on Vercel's serverless platform.
+A Python Flask file manager with **persistent Vercel Blob storage**. Your files stay safe across deployments!
 
-## Features
+## ✨ Features
 
 - 📁 Browse files and folders
-- ⬆️ Upload files (with drag & drop support)
+- ⬆️ Upload files
 - 📂 Create new folders
-- 👁️ View text files and images
-- ⬇️ Download files and folders (as ZIP)
-- ✂️ Copy/Cut/Paste files
+- ⬇️ Download files
 - 🗑️ Delete files and folders
-- ✅ Batch operations (select multiple files)
+- 💾 **Persistent storage** with Vercel Blob
 - 🎨 Modern, responsive UI
 
-## Important Notes for Vercel
+## 🔐 Setup Vercel Blob Storage
 
-⚠️ **Storage Limitation**: Vercel's serverless functions use `/tmp` directory which is:
-- Temporary storage (cleared between deployments)
-- Limited to 512MB
-- **Not persistent** across function invocations
+Before deploying, you need to set up Vercel Blob:
 
-### For Production Use
+1. **Create a Vercel Blob Store**:
+   - Go to your Vercel Dashboard
+   - Navigate to **Storage** tab
+   - Click **Create Database** → Select **Blob**
+   - Give it a name (e.g., "file-manager-storage")
 
-If you need **persistent storage**, consider these alternatives:
+2. **Get Your Token**:
+   - After creating, you'll see environment variables
+   - Copy the `BLOB_READ_WRITE_TOKEN` value
+   - It looks like: `vercel_blob_rw_XXXXXXXXXXXX`
 
-1. **Use Vercel Blob Storage**:
-   - Add `@vercel/blob` package
-   - Store files in Vercel's blob storage
-   - Requires modifying the code to use blob APIs
-
-2. **Use External Storage**:
-   - AWS S3
-   - Cloudflare R2
-   - Google Cloud Storage
-   - Backblaze B2
-
-3. **Use a Database for Metadata**:
-   - Vercel Postgres
-   - MongoDB Atlas
-   - Supabase
+3. **Set Environment Variable**:
+   - In your Vercel project settings
+   - Go to **Settings** → **Environment Variables**
+   - Add: `BLOB_READ_WRITE_TOKEN` with your token value
+   - Make sure it's enabled for Production, Preview, and Development
 
 ## Deployment to Vercel
 
-### Option 1: Deploy via Vercel CLI
+### Quick Deploy (Recommended)
 
-1. Install Vercel CLI:
+1. **Push to GitHub**:
    ```bash
-   npm install -g vercel
+   git add .
+   git commit -m "Add file manager"
+   git push origin main
    ```
 
-2. Deploy:
-   ```bash
-   vercel
-   ```
-
-3. Follow the prompts to link/create a project
-
-### Option 2: Deploy via Git
-
-1. Push your code to GitHub/GitLab/Bitbucket
-
-2. Import the project in Vercel:
-   - Go to https://vercel.com/new
-   - Import your Git repository
-   - Vercel will auto-detect the Python project
+2. **Deploy on Vercel**:
+   - Go to https://vercel.com
+   - Click "Add New" → "Project"
+   - Import your GitHub repo
+   - Vercel auto-detects it as Python
+   - **Before clicking Deploy**, go to Environment Variables
+   - Add: `BLOB_READ_WRITE_TOKEN` = (your token from above)
    - Click "Deploy"
+   - Wait 1-2 minutes
+   - Done! 🎉
+
+### Using Vercel CLI
+
+```bash
+# Install Vercel CLI
+npm install -g vercel
+
+# Set environment variable
+vercel env add BLOB_READ_WRITE_TOKEN
+
+# Paste your token when prompted
+
+# Deploy
+vercel --prod
+```
 
 ## Project Structure
 
@@ -80,47 +83,47 @@ If you need **persistent storage**, consider these alternatives:
 
 ## Local Development
 
-1. Install dependencies:
+1. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
 
-2. Run locally:
+2. **Set environment variable**:
    ```bash
-   python api/index.py
+   # Linux/Mac
+   export BLOB_READ_WRITE_TOKEN=vercel_blob_rw_YOUR_TOKEN
+
+   # Windows
+   set BLOB_READ_WRITE_TOKEN=vercel_blob_rw_YOUR_TOKEN
    ```
 
-3. Or use Vercel dev server:
+3. **Run locally**:
+   ```bash
+   cd api
+   python index.py
+   ```
+
+4. **Or use Vercel dev**:
    ```bash
    vercel dev
    ```
 
-4. Open http://localhost:3000
-
-## Configuration
-
-The file storage location is set in `api/index.py`:
-
-```python
-BASE_DIR = Path('/tmp/my_files')
-```
-
-For local development, you can change this to a local path:
-
-```python
-BASE_DIR = Path('./my_files')
-```
+5. Open http://localhost:3000
 
 ## API Endpoints
 
 - `GET /` - Main HTML interface
 - `GET /api/list?dir=<path>` - List files in directory
-- `POST /api/upload` - Upload file
+- `POST /api/upload` - Upload file to blob storage
 - `POST /api/create-folder` - Create new folder
-- `GET /api/view?path=<path>` - View file content
-- `GET /api/download?path=<path>` - Download file/folder
-- `POST /api/delete` - Delete files/folders
-- `POST /api/paste` - Copy/move files
+- `POST /api/delete` - Delete files/folders from blob storage
+
+## How It Works
+
+- Files are stored in **Vercel Blob** (persistent cloud storage)
+- Each file gets a unique URL for direct access
+- Folders are represented using a `.keep` placeholder file
+- All operations are serverless and scalable
 
 ## Security Features
 
