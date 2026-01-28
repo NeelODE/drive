@@ -332,7 +332,9 @@ def index():
 def list_files_route():
     """List files in blob storage."""
     if not BLOB_ENABLED:
-        return jsonify({'success': False, 'message': 'Blob storage not configured'}), 500
+        error_msg = f"Blob storage not configured. Token exists: {BLOB_READ_WRITE_TOKEN is not None}"
+        logger.error(error_msg)
+        return jsonify({'success': False, 'message': error_msg}), 500
     
     dir_param = request.args.get('dir', '')
     sanitized_dir = sanitize_path(dir_param)
@@ -340,20 +342,26 @@ def list_files_route():
         return jsonify({'success': False, 'message': 'Invalid directory'}), 400
     
     try:
+        logger.info(f"Listing files with prefix='files/', dir={sanitized_dir}")
         result = blob_list(prefix='files/', token=BLOB_READ_WRITE_TOKEN)
         blobs = result.get('blobs', [])
+        logger.info(f"Found {len(blobs)} blobs")
         files = parse_blob_files(blobs, sanitized_dir)
         return jsonify({'success': True, 'files': files})
     except Exception as e:
+        import traceback
         logger.error(f"List error: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        logger.error(traceback.format_exc())
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
 
 
 @app.route('/api/upload', methods=['POST'])
 def upload_file_route():
     """Upload file to blob storage."""
     if not BLOB_ENABLED:
-        return jsonify({'success': False, 'message': 'Blob storage not configured'}), 500
+        error_msg = f"Blob storage not configured. Token exists: {BLOB_READ_WRITE_TOKEN is not None}"
+        logger.error(error_msg)
+        return jsonify({'success': False, 'message': error_msg}), 500
     
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': 'No file'}), 400
@@ -372,6 +380,7 @@ def upload_file_route():
         filename = secure_filename(file.filename)
         blob_path = f"files/{sanitized_dir}/{filename}" if sanitized_dir else f"files/{filename}"
         
+        logger.info(f"Uploading file to: {blob_path}")
         result = put(
             pathname=blob_path,
             body=file.read(),
@@ -379,10 +388,13 @@ def upload_file_route():
             token=BLOB_READ_WRITE_TOKEN
         )
         
+        logger.info(f"Upload successful: {result.get('url')}")
         return jsonify({'success': True, 'message': f'Uploaded {filename}', 'url': result.get('url')})
     except Exception as e:
+        import traceback
         logger.error(f"Upload error: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        logger.error(traceback.format_exc())
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
 
 
 @app.route('/api/create-folder', methods=['POST'])
@@ -457,3 +469,13 @@ def delete_items_route():
 # For local development
 if __name__ == '__main__':
     app.run(debug=True, port=3000)
+
+@app.route('/api/debug')
+def debug_info():
+    """Debug endpoint to check configuration."""
+    return jsonify({
+        'blob_token_exists': BLOB_READ_WRITE_TOKEN is not None,
+        'blob_token_prefix': BLOB_READ_WRITE_TOKEN[:20] + '...' if BLOB_READ_WRITE_TOKEN else None,
+        'blob_enabled': BLOB_ENABLED,
+        'python_version': __import__('sys').version
+    })
