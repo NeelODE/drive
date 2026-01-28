@@ -1,5 +1,6 @@
 import os
 import json
+import requests
 from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
 import logging
@@ -8,15 +9,7 @@ app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB
 
 BLOB_READ_WRITE_TOKEN = os.environ.get('BLOB_READ_WRITE_TOKEN')
-
-if BLOB_READ_WRITE_TOKEN:
-    try:
-        from vercel_blob import put, delete, list as blob_list
-        BLOB_ENABLED = True
-    except ImportError:
-        BLOB_ENABLED = False
-else:
-    BLOB_ENABLED = False
+BLOB_API_URL = 'https://blob.vercel-storage.com'
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -58,6 +51,49 @@ def format_bytes(bytes_val):
         bytes_val /= 1024.0
         i += 1
     return f"{bytes_val:.2f} {suffixes[i]}"
+
+
+def blob_list(prefix=''):
+    """List blobs using Vercel Blob REST API."""
+    headers = {'Authorization': f'Bearer {BLOB_READ_WRITE_TOKEN}'}
+    params = {}
+    if prefix:
+        params['prefix'] = prefix
+    
+    response = requests.get(f'{BLOB_API_URL}/list', headers=headers, params=params)
+    response.raise_for_status()
+    return response.json()
+
+
+def blob_put(pathname, body):
+    """Upload blob using Vercel Blob REST API."""
+    headers = {
+        'Authorization': f'Bearer {BLOB_READ_WRITE_TOKEN}',
+        'x-content-type': 'application/octet-stream'
+    }
+    
+    # First, get the upload URL
+    response = requests.post(
+        BLOB_API_URL,
+        headers=headers,
+        json={'pathname': pathname, 'access': 'public', 'addRandomSuffix': False}
+    )
+    response.raise_for_status()
+    upload_data = response.json()
+    
+    # Then upload the file to the URL
+    upload_response = requests.put(upload_data['url'], data=body)
+    upload_response.raise_for_status()
+    
+    return upload_data
+
+
+def blob_delete(url):
+    """Delete blob using Vercel Blob REST API."""
+    headers = {'Authorization': f'Bearer {BLOB_READ_WRITE_TOKEN}'}
+    response = requests.delete(url, headers=headers)
+    response.raise_for_status()
+    return response.json()
 
 
 def parse_blob_files(blobs, current_dir=''):
@@ -328,13 +364,22 @@ def index():
 </html>'''
 
 
+@app.route('/api/debug')
+def debug_info():
+    """Debug endpoint to check configuration."""
+    return jsonify({
+        'blob_token_exists': BLOB_READ_WRITE_TOKEN is not None,
+        'blob_token_prefix': BLOB_READ_WRITE_TOKEN[:20] + '...' if BLOB_READ_WRITE_TOKEN else None,
+        'api_url': BLOB_API_URL,
+        'python_version': __import__('sys').version
+    })
+
+
 @app.route('/api/list')
 def list_files_route():
     """List files in blob storage."""
-    if not BLOB_ENABLED:
-        error_msg = f"Blob storage not configured. Token exists: {BLOB_READ_WRITE_TOKEN is not None}"
-        logger.error(error_msg)
-        return jsonify({'success': False, 'message': error_msg}), 500
+    if not BLOB_READ_WRITE_TOKEN:
+        return jsonify({'success': False, 'message': 'Blob token not configured'}), 500
     
     dir_param = request.args.get('dir', '')
     sanitized_dir = sanitize_path(dir_param)
@@ -343,7 +388,7 @@ def list_files_route():
     
     try:
         logger.info(f"Listing files with prefix='files/', dir={sanitized_dir}")
-        result = blob_list(prefix='files/', token=BLOB_READ_WRITE_TOKEN)
+        result = blob_list(prefix='files/')
         blobs = result.get('blobs', [])
         logger.info(f"Found {len(blobs)} blobs")
         files = parse_blob_files(blobs, sanitized_dir)
@@ -358,10 +403,8 @@ def list_files_route():
 @app.route('/api/upload', methods=['POST'])
 def upload_file_route():
     """Upload file to blob storage."""
-    if not BLOB_ENABLED:
-        error_msg = f"Blob storage not configured. Token exists: {BLOB_READ_WRITE_TOKEN is not None}"
-        logger.error(error_msg)
-        return jsonify({'success': False, 'message': error_msg}), 500
+    if not BLOB_READ_WRITE_TOKEN:
+        return jsonify({'success': False, 'message': 'Blob token not configured'}), 500
     
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': 'No file'}), 400
@@ -381,12 +424,7 @@ def upload_file_route():
         blob_path = f"files/{sanitized_dir}/{filename}" if sanitized_dir else f"files/{filename}"
         
         logger.info(f"Uploading file to: {blob_path}")
-        result = put(
-            pathname=blob_path,
-            body=file.read(),
-            options={'access': 'public', 'addRandomSuffix': False},
-            token=BLOB_READ_WRITE_TOKEN
-        )
+        result = blob_put(blob_path, file.read())
         
         logger.info(f"Upload successful: {result.get('url')}")
         return jsonify({'success': True, 'message': f'Uploaded {filename}', 'url': result.get('url')})
@@ -400,8 +438,8 @@ def upload_file_route():
 @app.route('/api/create-folder', methods=['POST'])
 def create_folder_route():
     """Create folder (placeholder file)."""
-    if not BLOB_ENABLED:
-        return jsonify({'success': False, 'message': 'Blob storage not configured'}), 500
+    if not BLOB_READ_WRITE_TOKEN:
+        return jsonify({'success': False, 'message': 'Blob token not configured'}), 500
     
     data = request.json
     folder_name = secure_filename(data.get('folder_name', '').strip())
@@ -416,14 +454,7 @@ def create_folder_route():
     
     try:
         blob_path = f"files/{sanitized_dir}/{folder_name}/.keep" if sanitized_dir else f"files/{folder_name}/.keep"
-        
-        put(
-            pathname=blob_path,
-            body=b'',
-            options={'access': 'public', 'addRandomSuffix': False},
-            token=BLOB_READ_WRITE_TOKEN
-        )
-        
+        blob_put(blob_path, b'')
         return jsonify({'success': True, 'message': f'Created folder {folder_name}'})
     except Exception as e:
         logger.error(f"Create folder error: {e}")
@@ -433,15 +464,15 @@ def create_folder_route():
 @app.route('/api/delete', methods=['POST'])
 def delete_items_route():
     """Delete files/folders from blob storage."""
-    if not BLOB_ENABLED:
-        return jsonify({'success': False, 'message': 'Blob storage not configured'}), 500
+    if not BLOB_READ_WRITE_TOKEN:
+        return jsonify({'success': False, 'message': 'Blob token not configured'}), 500
     
     paths = request.json.get('paths', [])
     if not paths:
         return jsonify({'success': False, 'message': 'No items to delete'}), 400
     
     try:
-        result = blob_list(prefix='files/', token=BLOB_READ_WRITE_TOKEN)
+        result = blob_list(prefix='files/')
         all_blobs = result.get('blobs', [])
         deleted = 0
         
@@ -457,7 +488,7 @@ def delete_items_route():
                 if pathname == blob_prefix or pathname.startswith(blob_prefix + '/'):
                     url = blob.get('url')
                     if url:
-                        delete(url, token=BLOB_READ_WRITE_TOKEN)
+                        blob_delete(url)
                         deleted += 1
         
         return jsonify({'success': True, 'message': f'Deleted {deleted} item(s)'})
@@ -469,13 +500,3 @@ def delete_items_route():
 # For local development
 if __name__ == '__main__':
     app.run(debug=True, port=3000)
-
-@app.route('/api/debug')
-def debug_info():
-    """Debug endpoint to check configuration."""
-    return jsonify({
-        'blob_token_exists': BLOB_READ_WRITE_TOKEN is not None,
-        'blob_token_prefix': BLOB_READ_WRITE_TOKEN[:20] + '...' if BLOB_READ_WRITE_TOKEN else None,
-        'blob_enabled': BLOB_ENABLED,
-        'python_version': __import__('sys').version
-    })
