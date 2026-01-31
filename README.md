@@ -1,143 +1,153 @@
-# File Manager - Vercel Blob Edition
+# 🚀 File Manager - Deployment Guide
 
-A Python Flask file manager with **persistent Vercel Blob storage**. Your files stay safe across deployments!
+## What You Have
 
-## ✨ Features
+A **Next.js file manager** with Vercel Blob storage that supports:
+- ✅ Upload files
+- ✅ Download files  
+- ✅ Copy files
+- ✅ Cut/Move files
+- ✅ Delete files
+- ✅ Create folders
+- ✅ Navigate directories
+- ✅ Preview images and text files
 
-- 📁 Browse files and folders
-- ⬆️ Upload files
-- 📂 Create new folders
-- ⬇️ Download files
-- 🗑️ Delete files and folders
-- 💾 **Persistent storage** with Vercel Blob
-- 🎨 Modern, responsive UI
+## Your Credentials
 
-## 🔐 Setup Vercel Blob Storage
-
-Before deploying, you need to set up Vercel Blob:
-
-1. **Create a Vercel Blob Store**:
-   - Go to your Vercel Dashboard
-   - Navigate to **Storage** tab
-   - Click **Create Database** → Select **Blob**
-   - Give it a name (e.g., "file-manager-storage")
-
-2. **Get Your Token**:
-   - After creating, you'll see environment variables
-   - Copy the `BLOB_READ_WRITE_TOKEN` value
-   - It looks like: `vercel_blob_rw_XXXXXXXXXXXX`
-
-3. **Set Environment Variable**:
-   - In your Vercel project settings
-   - Go to **Settings** → **Environment Variables**
-   - Add: `BLOB_READ_WRITE_TOKEN` with your token value
-   - Make sure it's enabled for Production, Preview, and Development
-
-## Deployment to Vercel
-
-### Quick Deploy (Recommended)
-
-1. **Push to GitHub**:
-   ```bash
-   git add .
-   git commit -m "Add file manager"
-   git push origin main
-   ```
-
-2. **Deploy on Vercel**:
-   - Go to https://vercel.com
-   - Click "Add New" → "Project"
-   - Import your GitHub repo
-   - Vercel auto-detects it as Python
-   - **Before clicking Deploy**, go to Environment Variables
-   - Add: `BLOB_READ_WRITE_TOKEN` = (your token from above)
-   - Click "Deploy"
-   - Wait 1-2 minutes
-   - Done! 🎉
-
-### Using Vercel CLI
-
-```bash
-# Install Vercel CLI
-npm install -g vercel
-
-# Set environment variable
-vercel env add BLOB_READ_WRITE_TOKEN
-
-# Paste your token when prompted
-
-# Deploy
-vercel --prod
+Your Vercel Blob token:
+```
+BLOB_READ_WRITE_TOKEN=vercel_blob_rw_fIQ15ZCVTiJidIyd_eKlTKznq7dGSk1esIbP7R5WZJFl1Jk
 ```
 
-## Project Structure
+## 🎯 How to Deploy
+
+### Step 1: Push to GitHub
+
+```bash
+cd /path/to/your/repo
+git add .
+git commit -m "Add Next.js file manager"
+git push origin main
+```
+
+### Step 2: Deploy on Vercel
+
+1. Go to **https://vercel.com**
+2. Click **"Add New"** → **"Project"**
+3. Import your GitHub repository
+4. **IMPORTANT**: Add Environment Variable:
+   - Click **"Environment Variables"**
+   - Name: `BLOB_READ_WRITE_TOKEN`
+   - Value: `vercel_blob_rw_fIQ15ZCVTiJidIyd_eKlTKznq7dGSk1esIbP7R5WZJFl1Jk`
+   - Enable for: Production ✓ Preview ✓ Development ✓
+5. Click **"Deploy"**
+6. Wait 2-3 minutes
+7. **Done!** 🎉
+
+## 📱 How to Use
+
+### Upload Files
+- Click "Choose Files" → Select files → Click "Upload"
+- Files go to current directory
+
+### Create Folders
+- Type folder name → Click "Create Folder"
+
+### Navigate
+- Click folder names to open them
+- Click breadcrumb buttons to go back
+
+### Copy Files
+- Click "Copy" on any file
+- Navigate to destination folder
+- Click "Paste (copy)"
+
+### Move Files
+- Click "Cut" on any file
+- Navigate to destination folder
+- Click "Paste (cut)"
+- Original file is deleted
+
+### Delete Files
+- Click "Delete" on any file/folder
+- Confirm deletion
+
+### Download Files
+- Click "Download" button
+
+### Preview Files
+- Click "View" on images (.jpg, .png, etc.) or text files (.txt, .md)
+- Opens in new tab
+
+## 🏗️ Project Structure
 
 ```
 .
-├── api/
-│   └── index.py          # Main Flask application
-├── requirements.txt      # Python dependencies
-├── vercel.json          # Vercel configuration
-└── README.md            # This file
+├── app/
+│   ├── api/
+│   │   ├── upload/route.js    # Upload & create folders
+│   │   ├── list/route.js      # List files
+│   │   ├── delete/route.js    # Delete files
+│   │   ├── copy/route.js      # Copy files
+│   │   └── move/route.js      # Move files
+│   ├── page.js                # Main UI
+│   └── layout.js              # Root layout
+├── package.json               # Dependencies
+└── next.config.js             # Next.js config
 ```
 
-## Local Development
+## 🔧 Local Development
 
-1. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+# Install dependencies
+npm install
 
-2. **Set environment variable**:
-   ```bash
-   # Linux/Mac
-   export BLOB_READ_WRITE_TOKEN=vercel_blob_rw_YOUR_TOKEN
+# Set environment variable
+export BLOB_READ_WRITE_TOKEN=vercel_blob_rw_fIQ15ZCVTiJidIyd_eKlTKznq7dGSk1esIbP7R5WZJFl1Jk
 
-   # Windows
-   set BLOB_READ_WRITE_TOKEN=vercel_blob_rw_YOUR_TOKEN
-   ```
+# Run development server
+npm run dev
 
-3. **Run locally**:
-   ```bash
-   cd api
-   python index.py
-   ```
+# Open http://localhost:3000
+```
 
-4. **Or use Vercel dev**:
-   ```bash
-   vercel dev
-   ```
+## ⚡ Features
 
-5. Open http://localhost:3000
+- **Persistent Storage**: Files stored in Vercel Blob (won't disappear)
+- **Fast**: Next.js serverless functions
+- **Simple UI**: No complex dependencies
+- **Mobile Friendly**: Responsive design
+- **Secure**: Path sanitization & access control
 
-## API Endpoints
+## 🎨 Tech Stack
 
-- `GET /` - Main HTML interface
-- `GET /api/list?dir=<path>` - List files in directory
-- `POST /api/upload` - Upload file to blob storage
-- `POST /api/create-folder` - Create new folder
-- `POST /api/delete` - Delete files/folders from blob storage
+- **Framework**: Next.js 14 (App Router)
+- **Storage**: Vercel Blob
+- **UI**: React with inline styles
+- **API**: Next.js API Routes
 
-## How It Works
+## 📊 Storage Info
 
-- Files are stored in **Vercel Blob** (persistent cloud storage)
-- Each file gets a unique URL for direct access
-- Folders are represented using a `.keep` placeholder file
-- All operations are serverless and scalable
+- Free tier: 5GB storage
+- Unlimited files
+- Fast CDN delivery
+- Public access URLs
 
-## Security Features
+## 🐛 Troubleshooting
 
-- Path traversal prevention
-- File name sanitization
-- File size limits (100MB)
-- Secure file operations
+**Files not loading?**
+- Check environment variable is set in Vercel
+- Check token is correct
+- Redeploy after adding env var
 
-## Browser Support
+**Upload fails?**
+- Check file size (max 4.5MB on hobby plan)
+- Check internet connection
 
-- Modern browsers (Chrome, Firefox, Safari, Edge)
-- JavaScript required
-- HTML5 File API support for drag & drop
+**Need help?**
+- Check Vercel deployment logs
+- Check browser console for errors
 
-## License
+---
 
-Free to use and modify.
+**That's it! Simple and clean. No bullshit.** 🎉
