@@ -1,6 +1,6 @@
 import { del, list } from '@vercel/blob';
 import { NextResponse } from 'next/server';
-
+ 
 export async function POST(request) {
   try {
     const { paths } = await request.json();
