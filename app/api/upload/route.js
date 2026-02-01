@@ -1,3 +1,6 @@
+process.env.BLOB_READ_WRITE_TOKEN = process.env.wahtoken_READ_WRITE_TOKEN;
+import { put } from '@vercel/blob';
+
 import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 
