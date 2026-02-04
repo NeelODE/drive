@@ -1,9 +1,6 @@
-process.env.BLOB_READ_WRITE_TOKEN = process.env.wahtoken_READ_WRITE_TOKEN;
-import { del, list } from '@vercel/blob';
-
 import { del, list } from '@vercel/blob';
 import { NextResponse } from 'next/server';
- 
+
 export async function POST(request) {
   try {
     const { paths } = await request.json();
@@ -12,7 +9,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No paths provided' }, { status: 400 });
     }
     
-    const { blobs } = await list({ prefix: 'files/' });
+    const { blobs } = await list({ prefix: 'files/', token: 'vercel_blob_rw_fIQl5ZCVTiJidIyd_eKlTKznq7dGSklesIbP7R5WZjFllJk' });
     const urlsToDelete = [];
     
     for (const path of paths) {
@@ -26,7 +23,7 @@ export async function POST(request) {
     }
     
     if (urlsToDelete.length > 0) {
-      await del(urlsToDelete);
+      await del(urlsToDelete, { token: 'vercel_blob_rw_fIQl5ZCVTiJidIyd_eKlTKznq7dGSklesIbP7R5WZjFllJk' });
     }
     
     return NextResponse.json({ success: true, deleted: urlsToDelete.length });

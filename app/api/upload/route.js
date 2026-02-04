@@ -1,6 +1,3 @@
-process.env.BLOB_READ_WRITE_TOKEN = process.env.wahtoken_READ_WRITE_TOKEN;
-import { put } from '@vercel/blob';
-
 import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 
@@ -12,7 +9,7 @@ export async function POST(request) {
     if (contentType?.includes('application/json')) {
       const { folderName, dir } = await request.json();
       const path = dir ? `files/${dir}/${folderName}/.keep` : `files/${folderName}/.keep`;
-      await put(path, '', { access: 'public' });
+      await put(path, '', { access: 'public', token: 'vercel_blob_rw_fIQl5ZCVTiJidIyd_eKlTKznq7dGSklesIbP7R5WZjFllJk' });
       return NextResponse.json({ success: true });
     }
     
@@ -29,7 +26,7 @@ export async function POST(request) {
     const buffer = Buffer.from(bytes);
     
     const path = dir ? `files/${dir}/${file.name}` : `files/${file.name}`;
-    const blob = await put(path, buffer, { access: 'public' });
+    const blob = await put(path, buffer, { access: 'public', token: 'vercel_blob_rw_fIQl5ZCVTiJidIyd_eKlTKznq7dGSklesIbP7R5WZjFllJk' });
     
     return NextResponse.json({ success: true, url: blob.url });
   } catch (error) {

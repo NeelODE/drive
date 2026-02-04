@@ -1,6 +1,3 @@
-process.env.BLOB_READ_WRITE_TOKEN = process.env.wahtoken_READ_WRITE_TOKEN;
-import { list } from '@vercel/blob';
-
 import { list } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 
@@ -9,7 +6,10 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const dir = searchParams.get('dir') || '';
     
-    const { blobs } = await list({ prefix: `files/${dir}` });
+    const { blobs } = await list({ 
+      prefix: `files/${dir}`,
+      token: 'vercel_blob_rw_fIQl5ZCVTiJidIyd_eKlTKznq7dGSklesIbP7R5WZjFllJk'
+    });
     
     const filesMap = new Map();
     const folders = new Set();
